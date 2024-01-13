@@ -33,20 +33,20 @@ jobs:
         echo "user ${{ secrets.SMTP_USER }}" >> $MSMTPRC_PATH
         echo "password ${{ secrets.SMTP_PASSWORD }}" >> $MSMTPRC_PATH
         chmod 600 $MSMTPRC_PATH
+        echo "MSMTPRC_PATH=$MSMTPRC_PATH" >> $GITHUB_ENV
       env:
         MSMTPRC_PATH: $HOME/.msmtprc
+
+    - name: Print Variables
+      run: |
+        echo "MSMTPRC_PATH=$MSMTPRC_PATH"
+        echo "PR_AUTHOR_EMAIL=${{ env.PR_AUTHOR_EMAIL }}"
 
     - name: Get PR Author's Email
       id: get-author-email
       run: |
         PR_AUTHOR_EMAIL=$(echo "${{ github.event.pull_request.user.login }}@users.noreply.github.com")
         echo "PR_AUTHOR_EMAIL=$PR_AUTHOR_EMAIL" >> $GITHUB_ENV
-    
-    - name: Print Variables
-      run: |
-        echo "MSMTPRC_PATH=$MSMTPRC_PATH"
-        echo "PR_AUTHOR_EMAIL=${{ env.PR_AUTHOR_EMAIL }}"
-
 
     - name: Send Sticker Email
       run: |
