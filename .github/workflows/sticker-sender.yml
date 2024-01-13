@@ -1,0 +1,33 @@
+name: Sticker Sender
+
+on:
+  pull_request:
+    types:
+      - opened
+
+jobs:
+  send-sticker:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout Repository
+      uses: actions/checkout@v2
+    
+    - name: Install GitHub CLI
+      run: |
+        sudo apt-key adv --keyserver keyserver.ubuntu.com --recv-key C99B11DEB97541F0
+        sudo apt-add-repository https://cli.github.com/packages
+        sudo apt-get update
+        sudo apt-get install gh
+
+    - name: Send Sticker
+      run: |
+        gh pr comment ${{ github.event.pull_request.number }} -b "Thank you for opening this pull request!"
+        echo "Sending sticker to ${{ github.event.pull_request.head.user.login }}..."
+
+    - name: Commit and Push
+      run: |
+        git config --global user.email "actions@github.com"
+        git config --global user.name "GitHub Actions"
+        git commit -am "Add Sticker to pull request"
+        git push
