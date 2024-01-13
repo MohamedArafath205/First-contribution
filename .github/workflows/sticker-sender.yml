@@ -1,4 +1,4 @@
-name: Sticker Sender
+name: Email Sticker Sender
 
 on:
   pull_request:
@@ -6,28 +6,44 @@ on:
       - opened
 
 jobs:
-  send-sticker:
+  send-sticker-email:
     runs-on: ubuntu-latest
 
     steps:
     - name: Checkout Repository
       uses: actions/checkout@v2
-    
-    - name: Install GitHub CLI
-      run: |
-        sudo apt-key adv --keyserver keyserver.ubuntu.com --recv-key C99B11DEB97541F0
-        sudo apt-add-repository https://cli.github.com/packages
-        sudo apt-get update
-        sudo apt-get install gh
 
-    - name: Send Sticker
-      run: |
-        gh pr comment ${{ github.event.pull_request.number }} -b "Thank you for opening this pull request!"
-        echo "Sending sticker to ${{ github.event.pull_request.head.user.login }}..."
+    - name: Install msmtp
+      run: sudo apt-get install -y msmtp
 
-    - name: Commit and Push
+    - name: Set up SMTP Config
       run: |
-        git config --global user.email "actions@github.com"
-        git config --global user.name "GitHub Actions"
-        git commit -am "Add Sticker to pull request"
-        git push
+        MSMTPRC_PATH=$HOME/.msmtprc
+        echo "account default" >> $MSMTPRC_PATH
+        echo "host ${{ secrets.SMTP_HOST }}" >> $MSMTPRC_PATH
+        echo "port ${{ secrets.SMTP_PORT }}" >> $MSMTPRC_PATH
+        echo "protocol smtp" >> $MSMTPRC_PATH
+        echo "auth on" >> $MSMTPRC_PATH
+        echo "from ${{ secrets.SMTP_USER }}" >> $MSMTPRC_PATH
+        echo "user ${{ secrets.SMTP_USER }}" >> $MSMTPRC_PATH
+        echo "password ${{ secrets.SMTP_PASSWORD }}" >> $MSMTPRC_PATH
+        chmod 600 $MSMTPRC_PATH
+      env:
+        MSMTPRC_PATH: $HOME/.msmtprc
+
+    - name: Get PR Author's Email
+      id: get-author-email
+      run: |
+        PR_AUTHOR_EMAIL=$(curl -sH "Authorization: token $GITHUB_TOKEN" \
+                          "https://api.github.com/repos/${{ github.repository }}/pulls/${{ github.event.number }}" | \
+                          jq -r '.user.email')
+        echo "PR_AUTHOR_EMAIL=$PR_AUTHOR_EMAIL" >> $GITHUB_ENV
+
+    - name: Send Sticker Email
+      run: |
+        echo "Subject: Thank you for the Pull Request!" | msmtp --file=$MSMTPRC_PATH --read-recipients
+        echo "Content-Type: text/plain; charset=utf-8" | msmtp --file=$MSMTPRC_PATH --read-recipients
+        echo "" | msmtp --file=$MSMTPRC_PATH --read-recipients
+        echo "🎉 Thank you for opening this pull request!" | msmtp ${{ env.PR_AUTHOR_EMAIL }}
+      env:
+        PR_AUTHOR_EMAIL: ${{ env.PR_AUTHOR_EMAIL }}
