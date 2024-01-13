@@ -39,29 +39,14 @@ jobs:
     - name: Get PR Author's Email
       id: get-author-email
       run: |
-        PR_AUTHOR_EMAIL=$(curl -sH "Authorization: token $GITHUB_TOKEN" \
-                          "https://api.github.com/repos/${{ github.repository }}/pulls/${{ github.event.number }}" | \
-                          jq -r '.user.email')
-        if [[ "$PR_AUTHOR_EMAIL" == "null" || "$PR_AUTHOR_EMAIL" == "undefined" ]]; then
-          echo "PR_AUTHOR_EMAIL not available or set to 'null'. Exiting..."
-          exit 1
-        fi
+        PR_AUTHOR_EMAIL=$(echo "${{ github.event.pull_request.user.login }}@users.noreply.github.com")
         echo "PR_AUTHOR_EMAIL=$PR_AUTHOR_EMAIL" >> $GITHUB_ENV
-
-    - name: Get Collaborators' Emails
-      id: get-collaborators-emails
-      run: |
-        COLLABORATORS_EMAILS=$(curl -sH "Authorization: token $GITHUB_TOKEN" \
-                                "https://api.github.com/repos/${{ github.repository }}/collaborators" | \
-                                jq -r '.[].permissions.pusher + " " + .[].permissions.admin')
-        echo "COLLABORATORS_EMAILS=$COLLABORATORS_EMAILS" >> $GITHUB_ENV
 
     - name: Send Sticker Email
       run: |
         echo "Subject: Thank you for the Pull Request!" | msmtp --file=$MSMTPRC_PATH --read-recipients
         echo "Content-Type: text/plain; charset=utf-8" | msmtp --file=$MSMTPRC_PATH --read-recipients
         echo "" | msmtp --file=$MSMTPRC_PATH --read-recipients
-        echo "🎉 Thank you for opening this pull request!" | msmtp ${{ env.PR_AUTHOR_EMAIL }} ${{ env.COLLABORATORS_EMAILS }}
+        echo "🎉 Thank you for opening this pull request!" | msmtp ${{ env.PR_AUTHOR_EMAIL }}
       env:
         PR_AUTHOR_EMAIL: ${{ env.PR_AUTHOR_EMAIL }}
-        COLLABORATORS_EMAILS: ${{ env.COLLABORATORS_EMAILS }}
