@@ -1,5 +1,10 @@
 name: 'sticker-sender'
 
+on:
+  push:
+    branches:
+      - main  # Adjust the branch name as needed
+
 jobs:
   build:
     runs-on: ubuntu-latest
