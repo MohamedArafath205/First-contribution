@@ -40,19 +40,18 @@ jobs:
     - name: Print Variables
       run: |
         echo "MSMTPRC_PATH=$MSMTPRC_PATH"
-        echo "PR_AUTHOR_EMAIL=${{ env.PR_AUTHOR_EMAIL }}"
 
     - name: Get PR Author's Email
       id: get-author-email
       run: |
-        PR_AUTHOR_EMAIL=$(echo "${{ github.event.pull_request.user.login }}@users.noreply.github.com")
+        PR_AUTHOR_EMAIL=$(curl -sL https://api.github.com/users/${{ github.event.pull_request.user.login }} | jq -r '.email')
         echo "PR_AUTHOR_EMAIL=$PR_AUTHOR_EMAIL" >> $GITHUB_ENV
 
     - name: Send Sticker Email
       run: |
-        echo "Subject: Thank you for the Pull Request!" | msmtp --file=$MSMTPRC_PATH --read-recipients
-        echo "Content-Type: text/plain; charset=utf-8" | msmtp --file=$MSMTPRC_PATH --read-recipients
-        echo "" | msmtp --file=$MSMTPRC_PATH --read-recipients
+        echo "Subject: Thank you for the Pull Request!" | msmtp --file=$MSMTPRC_PATH ${{ env.PR_AUTHOR_EMAIL }}
+        echo "Content-Type: text/plain; charset=utf-8" | msmtp --file=$MSMTPRC_PATH ${{ env.PR_AUTHOR_EMAIL }}
+        echo "" | msmtp --file=$MSMTPRC_PATH ${{ env.PR_AUTHOR_EMAIL }}
         echo "🎉 Thank you for opening this pull request!" | msmtp ${{ env.PR_AUTHOR_EMAIL }}
       env:
         PR_AUTHOR_EMAIL: ${{ env.PR_AUTHOR_EMAIL }}
