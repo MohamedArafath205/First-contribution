@@ -1,57 +1,20 @@
-name: Email Sticker Sender
+name: 'sticker-sender'
 
 on:
-  pull_request:
-    types:
-      - opened
+  schedule:
+    - cron: '*/5 * * * *'
+  workflow_dispatch:
 
 jobs:
-  send-sticker-email:
+  build:
     runs-on: ubuntu-latest
-
     steps:
-    - name: Checkout Repository
-      uses: actions/checkout@v2
-
-    - name: Set up Node.js
-      uses: actions/setup-node@v4
-      with:
-        node-version: '14'  # Replace with a valid Node.js version
-
-    - name: Install msmtp
-      run: sudo apt-get install -y msmtp
-
-    - name: Set up SMTP Config
-      run: |
-        MSMTPRC_PATH=$HOME/.msmtprc
-        echo "account default" >> $MSMTPRC_PATH
-        echo "host ${{ secrets.SMTP_HOST }}" >> $MSMTPRC_PATH
-        echo "port ${{ secrets.SMTP_PORT }}" >> $MSMTPRC_PATH
-        echo "protocol smtp" >> $MSMTPRC_PATH
-        echo "auth on" >> $MSMTPRC_PATH
-        echo "from ${{ secrets.SMTP_USER }}" >> $MSMTPRC_PATH
-        echo "user ${{ secrets.SMTP_USER }}" >> $MSMTPRC_PATH
-        echo "password ${{ secrets.SMTP_PASSWORD }}" >> $MSMTPRC_PATH
-        chmod 600 $MSMTPRC_PATH
-        echo "MSMTPRC_PATH=$MSMTPRC_PATH" >> $GITHUB_ENV
-      env:
-        MSMTPRC_PATH: $HOME/.msmtprc
-
-    - name: Print Variables
-      run: |
-        echo "MSMTPRC_PATH=$MSMTPRC_PATH"
-
-    - name: Get PR Author's Email
-      id: get-author-email
-      run: |
-        PR_AUTHOR_EMAIL=$(curl -sL https://api.github.com/users/${{ github.event.pull_request.user.login }} | jq -r '.email')
-        echo "PR_AUTHOR_EMAIL=$PR_AUTHOR_EMAIL" >> $GITHUB_ENV
-
-    - name: Send Sticker Email
-      run: |
-        echo "Subject: Thank you for the Pull Request!" | msmtp --file=$MSMTPRC_PATH ${{ env.PR_AUTHOR_EMAIL }}
-        echo "Content-Type: text/plain; charset=utf-8" | msmtp --file=$MSMTPRC_PATH ${{ env.PR_AUTHOR_EMAIL }}
-        echo "" | msmtp --file=$MSMTPRC_PATH ${{ env.PR_AUTHOR_EMAIL }}
-        echo "🎉 Thank you for opening this pull request!" | msmtp ${{ env.PR_AUTHOR_EMAIL }}
-      env:
-        PR_AUTHOR_EMAIL: ${{ env.PR_AUTHOR_EMAIL }}
+      - uses: actions/checkout@v2
+      - uses: actions/setup-python@v2
+        with:
+          python-version: 3.x
+        - name: Run email code
+          env:
+            USER_EMAIL: ${{ secrets.USER_EMAIL }}
+            USER_PASSWORD: ${{ secrets.USER_PASSWORD }}
+          run: python sticker-sender.py 
